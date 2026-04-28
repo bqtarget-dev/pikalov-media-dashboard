@@ -6,7 +6,7 @@ export default async function handler(req, res) {
 
   const { path, access_token, ...params } = req.query;
   const query = new URLSearchParams(params).toString();
-  const url = `https://ads.vk.com/api/v2/${path}.json?${query}`;
+  const url = `https://ads.vk.com/api/v2/${path}.json?${query}&limit=100&status=active`;
 
   try {
     const response = await fetch(url, {
