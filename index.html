@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIKALOV MEDIA — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0c;--bg2:#111116;--bg3:#18181f;--bg4:#1f1f28;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --accent:#7f6ef5;--accent2:#a99ef8;--green:#3ecf8e;--amber:#f5a623;--red:#f55656;
+  --text:rgba(255,255,255,0.92);--text2:rgba(255,255,255,0.45);--text3:rgba(255,255,255,0.22);
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;min-height:100vh}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:0.5px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:100}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.12em;color:#fff}
+.logo em{color:var(--accent);font-style:normal}
+.nav-tabs{display:flex;gap:4px}
+.tab{padding:7px 16px;border-radius:8px;border:none;background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .15s}
+.tab.active{background:var(--bg3);color:var(--text);border:0.5px solid var(--border2)}
+.view{display:none;padding:24px;max-width:900px;margin:0 auto}
+.view.active{display:block}
+.page-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.06em;color:#fff;margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--text2);margin-bottom:20px}
+.clients-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:20px}
+.client-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:18px;transition:all .2s}
+.client-card:hover{border-color:var(--border2)}
+.client-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.client-name{font-size:15px;font-weight:500;color:#fff}
+.client-count{font-size:11px;color:var(--text2);background:var(--bg4);padding:3px 10px;border-radius:20px;border:0.5px solid var(--border)}
+.client-link-row{display:flex;align-items:center;gap:8px;background:var(--bg4);border-radius:8px;padding:8px 12px;border:0.5px solid var(--border);margin-bottom:10px}
+.client-link-text{font-size:11px;color:var(--accent2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace}
+.copy-btn{font-size:11px;color:var(--text2);background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:4px 10px;cursor:pointer;white-space:nowrap;transition:all .15s}
+.copy-btn:hover{color:#fff;border-color:var(--accent)}
+.copy-btn.copied{color:var(--green);border-color:var(--green)}
+.camp-tags{display:flex;flex-wrap:wrap;gap:5px}
+.camp-tag{font-size:10px;color:var(--text2);background:var(--bg4);padding:3px 8px;border-radius:5px;border:0.5px solid var(--border)}
+.delete-btn{font-size:11px;color:var(--red);background:transparent;border:0.5px solid rgba(245,86,86,0.2);border-radius:6px;padding:4px 10px;cursor:pointer;margin-top:10px;transition:all .15s}
+.add-section{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px}
+.form-title{font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2);margin-bottom:14px}
+.form-row{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.input-wrap{flex:1;min-width:200px}
+.input-label{font-size:11px;color:var(--text2);margin-bottom:5px;display:block}
+input[type=text]{width:100%;background:var(--bg4);border:0.5px solid var(--border2);border-radius:8px;padding:9px 12px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .15s}
+input[type=text]:focus{border-color:var(--accent)}
+.btn-primary{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;font-weight:500;white-space:nowrap;transition:opacity .15s;align-self:flex-end}
+.camp-selector-title{font-size:11px;color:var(--text2);margin-bottom:8px;display:block}
+.camp-list{display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto}
+.camp-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg4);border-radius:8px;border:0.5px solid var(--border);cursor:pointer;transition:all .15s}
+.camp-item.checked{border-color:rgba(127,110,245,0.4);background:rgba(127,110,245,0.07)}
+.camp-check{width:16px;height:16px;border-radius:4px;border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.camp-item.checked .camp-check{background:var(--accent);border-color:var(--accent)}
+.check-inner{width:8px;height:8px;background:#fff;border-radius:2px;opacity:0;transform:scale(.5);transition:all .15s}
+.camp-item.checked .check-inner{opacity:1;transform:scale(1)}
+.camp-item-name{font-size:13px;color:var(--text);flex:1}
+.status-badge{font-size:10px;padding:2px 8px;border-radius:10px}
+.status-active{background:rgba(62,207,142,0.12);color:var(--green);border:0.5px solid rgba(62,207,142,0.2)}
+.status-paused{background:rgba(245,166,35,0.1);color:var(--amber);border:0.5px solid rgba(245,166,35,0.2)}
+.vk-section{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:20px}
+.vk-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.vk-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)}
+.vk-dot{width:7px;height:7px;border-radius:50%;background:var(--amber)}
+.vk-dot.connected{background:var(--green)}
+.token-row{display:flex;gap:8px}
+.token-input{flex:1;background:var(--bg4);border:0.5px solid var(--border2);border-radius:8px;padding:9px 12px;color:#fff;font-family:monospace;font-size:12px;outline:none}
+.vk-hint{margin-top:8px;font-size:11px;color:var(--text3)}
+.sync-row{display:flex;align-items:center;gap:10px;margin-top:12px}
+.sync-btn{background:rgba(127,110,245,0.15);color:var(--accent2);border:0.5px solid rgba(127,110,245,0.3);border-radius:8px;padding:8px 16px;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer}
+.sync-status{font-size:11px;color:var(--text3)}
+.preview-client-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:16px 18px;cursor:pointer;transition:all .15s;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.preview-client-card:hover{border-color:var(--accent)}
+.preview-client-name{font-size:14px;font-weight:500}
+.back-btn{display:flex;align-items:center;gap:6px;background:transparent;border:0.5px solid var(--border);border-radius:8px;padding:7px 14px;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;margin-bottom:24px;width:fit-content}
+.report-header{text-align:center;margin-bottom:32px}
+.report-logo{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.14em;color:rgba(255,255,255,0.25);margin-bottom:14px}
+.report-logo em{color:var(--accent);font-style:normal}
+.report-artist{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:0.04em;line-height:1;margin-bottom:4px}
+.report-period{font-size:12px;color:var(--text3);background:rgba(255,255,255,0.04);border:0.5px solid var(--border);display:inline-block;padding:4px 14px;border-radius:20px}
+.totals-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
+.total-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:16px 18px}
+.total-card.accent{border-color:rgba(127,110,245,0.25);background:rgba(127,110,245,0.05)}
+.total-card.green{border-color:rgba(62,207,142,0.2);background:rgba(62,207,142,0.04)}
+.t-label{font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:8px}
+.t-value{font-size:26px;font-weight:500}
+.t-value.purple{color:var(--accent2)}
+.t-value.g{color:var(--green)}
+.divider{height:0.5px;background:var(--border);margin:20px 0}
+.section-label{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:10px}
+.report-camp{background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px}
+.report-camp-name{font-size:12px;color:var(--text2);margin-bottom:10px}
+.metrics-row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.metric{background:rgba(0,0,0,0.2);border-radius:7px;padding:9px 8px;text-align:center}
+.metric-label{font-size:9px;text-transform:uppercase;letter-spacing:0.04em;color:var(--text3);margin-bottom:3px}
+.metric-value{font-size:13px;font-weight:500}
+.metric-value.mp{color:var(--accent2)}
+.metric-value.mg{color:var(--green)}
+.report-footer{text-align:center;margin-top:32px;font-size:11px;color:var(--text3)}
+.report-footer em{color:rgba(127,110,245,0.4);font-style:normal}
+.empty{text-align:center;padding:40px;color:var(--text3);font-size:13px}
+.client-view-wrap{max-width:640px;margin:0 auto}
+</style>
+</head>
+<body><div class="nav" id="main-nav">
+  <div class="logo">PIKALOV <em>MEDIA</em></div>
+  <div class="nav-tabs">
+    <button class="tab active" onclick="showView('admin')" id="tab-admin">Админ</button>
+    <button class="tab" onclick="showView('preview')" id="tab-preview">Клиент</button>
+  </div>
+</div>
+
+<div class="view active" id="view-admin">
+  <div class="page-title">Клиенты и доступы</div>
+  <div class="page-sub">Создавай клиентов, привязывай кампании и выдавай уникальные ссылки</div>
+  <div class="clients-grid" id="clients-grid"></div>
+  <div class="add-section">
+    <div class="form-title">Новый клиент</div>
+    <div class="form-row">
+      <div class="input-wrap">
+        <label class="input-label">Имя клиента / менеджера</label>
+        <input type="text" id="new-client-name" placeholder="Например: Менеджер Saluki" />
+      </div>
+      <button class="btn-primary" onclick="createClient()">Создать клиента</button>
+    </div>
+    <span class="camp-selector-title">Выбери кампании для этого клиента:</span>
+    <div class="camp-list" id="camp-list-admin"></div>
+  </div>
+  <div class="vk-section">
+    <div class="vk-header">
+      <div class="form-title" style="margin:0">VK Ads API</div>
+      <div class="vk-status">
+        <div class="vk-dot" id="vk-dot"></div>
+        <span id="vk-status-text">Не подключено</span>
+      </div>
+    </div>
+    <div class="token-row">
+      <input class="token-input" type="password" id="vk-token-input" placeholder="Вставь access_token из VK..." />
+      <button class="btn-primary" onclick="saveToken()">Сохранить</button>
+    </div>
+    <div class="vk-hint">Токен хранится только в твоём браузере и никуда не передаётся</div>
+    <div class="sync-row">
+      <button class="sync-btn" onclick="syncCampaigns()">↻ Загрузить кампании из VK</button>
+      <span class="sync-status" id="sync-status"></span>
+    </div>
+  </div>
+</div>
+
+<div class="view" id="view-preview">
+  <div class="client-view-wrap">
+    <div id="client-select-state">
+      <div class="page-title">Превью клиента</div>
+      <div class="page-sub">Выбери клиента чтобы увидеть его вид</div>
+      <div id="preview-list"></div>
+    </div>
+    <div id="client-report-state" style="display:none">
+      <button class="back-btn" onclick="backToList()">← Назад</button>
+      <div id="report-content"></div>
+    </div>
+  </div>
+</div><script>
+let state={clients:[],campaigns:[],token:'',accountId:'23848076'};
+function saveState(){localStorage.setItem('pm_clients',JSON.stringify(state.clients));localStorage.setItem('pm_campaigns',JSON.stringify(state.campaigns));if(state.token)localStorage.setItem('pm_token',state.token);}
+function loadState(){try{const c=localStorage.getItem('pm_clients');const ca=localStorage.getItem('pm_campaigns');const t=localStorage.getItem('pm_token');if(c)state.clients=JSON.parse(c);if(ca)state.campaigns=JSON.parse(ca);if(t){state.token=t;document.getElementById('vk-dot').classList.add('connected');document.getElementById('vk-status-text').textContent='Подключено';}}catch(e){}}
+function saveToken(){const t=document.getElementById('vk-token-input').value.trim();if(!t)return;state.token=t;saveState();document.getElementById('vk-dot').classList.add('connected');document.getElementById('vk-status-text').textContent='Подключено';document.getElementById('vk-token-input').value='';document.getElementById('sync-status').textContent='Токен сохранён!';setTimeout(()=>document.getElementById('sync-status').textContent='',2000);}
+async function syncCampaigns(){if(!state.token){document.getElementById('sync-status').textContent='Сначала введи токен';return;}document.getElementById('sync-status').textContent='Загружаю...';try{const url=`https://api.vk.com/method/ads.getCampaigns?access_token=${state.token}&account_id=${state.accountId}&v=5.131`;const resp=await fetch(url);const data=await resp.json();if(data.error){document.getElementById('sync-status').textContent='Ошибка: '+data.error.error_msg;return;}state.campaigns=data.response.map(c=>({id:String(c.id),name:c.name,status:c.status===1?'active':'paused',spent:0,plays:0,cpa_play:0,adds:0,cpa_add:0}));await loadStats();saveState();renderCampListAdmin();document.getElementById('sync-status').textContent=`Загружено ${state.campaigns.length} кампаний`;}catch(e){document.getElementById('sync-status').textContent='Ошибка соединения';}}
+async function loadStats(){if(!state.token||!state.campaigns.length)return;try{const ids=state.campaigns.map(c=>c.id).join(',');const today=new Date().toISOString().split('T')[0];const monthAgo=new Date(Date.now()-30*24*60*60*1000).toISOString().split('T')[0];const url=`https://api.vk.com/method/ads.getStatistics?access_token=${state.token}&account_id=${state.accountId}&ids_type=campaign&ids=${ids}&period=overall&date_from=${monthAgo}&date_to=${today}&v=5.131`;const resp=await fetch(url);const data=await resp.json();if(data.error||!data.response)return;data.response.forEach(item=>{const camp=state.campaigns.find(c=>c.id===String(item.id));if(!camp||!item.stats||!item.stats.length)return;const s=item.stats[0];camp.spent=parseFloat(s.spent||0);camp.plays=parseInt(s.reach||0);camp.adds=parseInt(s.clicks||0);camp.cpa_play=camp.plays?camp.spent/camp.plays:0;camp.cpa_add=camp.adds?camp.spent/camp.adds:0;});}catch(e){}}
+function genToken(){return 'pm-'+Math.random().toString(36).substr(2,6)+'-'+Math.random().toString(36).substr(2,4);}
+let selectedCamps=new Set();
+function createClient(){const name=document.getElementById('new-client-name').value.trim();if(!name){document.getElementById('new-client-name').style.borderColor='var(--red)';setTimeout(()=>document.getElementById('new-client-name').style.borderColor='',1000);return;}if(!selectedCamps.size){alert('Выбери хотя бы одну кампанию');return;}state.clients.push({id:'cl'+Date.now(),name,token:genToken(),campaigns:[...selectedCamps]});document.getElementById('new-client-name').value='';selectedCamps.clear();saveState();renderAdminClients();renderCampListAdmin();}
+function deleteClient(id){if(!confirm('Удалить клиента?'))return;state.clients=state.clients.filter(c=>c.id!==id);saveState();renderAdminClients();}
+function copyLink(token,btnId){const url=window.location.origin+window.location.pathname+'?client='+token;navigator.clipboard.writeText(url).catch(()=>{});const btn=document.getElementById(btnId);if(btn){btn.textContent='Скопировано!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Копировать';btn.classList.remove('copied');},2000);}}
+function renderAdminClients(){const grid=document.getElementById('clients-grid');if(!state.clients.length){grid.innerHTML='<div class="empty">Клиентов пока нет — создай первого ниже</div>';return;}grid.innerHTML=state.clients.map(cl=>{const camps=cl.campaigns.map(cid=>state.campaigns.find(c=>c.id===cid)).filter(Boolean);const btnId='copy-'+cl.id;return`<div class="client-card"><div class="client-top"><div class="client-name">${cl.name}</div><div class="client-count">${camps.length} кампани${camps.length===1?'я':camps.length<5?'и':'й'}</div></div><div class="client-link-row"><span class="client-link-text">?client=${cl.token}</span><button class="copy-btn" id="${btnId}" onclick="copyLink('${cl.token}','${btnId}')">Копировать</button></div><div class="camp-tags">${camps.map(c=>`<span class="camp-tag">${c?c.name:'—'}</span>`).join('')}</div><button class="delete-btn" onclick="deleteClient('${cl.id}')">Удалить клиента</button></div>`;}).join('');}
+function renderCampListAdmin(){const list=document.getElementById('camp-list-admin');if(!state.campaigns.length){list.innerHTML='<div style="font-size:12px;color:var(--text3);padding:10px">Сначала загрузи кампании из VK Ads →</div>';return;}list.innerHTML=state.campaigns.map(c=>`<div class="camp-item ${selectedCamps.has(c.id)?'checked':''}" onclick="toggleCamp('${c.id}')"><div class="camp-check"><div class="check-inner"></div></div><span class="camp-item-name">${c.name}</span><span class="status-badge ${c.status==='active'?'status-active':'status-paused'}">${c.status==='active'?'Активна':'Пауза'}</span></div>`).join('');}
+function toggleCamp(id){if(selectedCamps.has(id))selectedCamps.delete(id);else selectedCamps.add(id);renderCampListAdmin();}
+function renderPreviewList(){const el=document.getElementById('preview-list');if(!state.clients.length){el.innerHTML='<div class="empty">Нет клиентов — создай в разделе Админ</div>';return;}el.innerHTML=state.clients.map(cl=>`<div class="preview-client-card" onclick="showClientReport('${cl.id}')"><div><div class="preview-client-name">${cl.name}</div><div style="font-size:11px;color:var(--text3);margin-top:3px">${cl.campaigns.length} кампани${cl.campaigns.length===1?'я':cl.campaigns.length<5?'и':'й'}</div></div><div style="color:var(--text3)">→</div></div>`).join('');}
+function showClientReport(cid){const cl=state.clients.find(c=>c.id===cid);if(!cl)return;const camps=cl.campaigns.map(id=>state.campaigns.find(c=>c.id===id)).filter(Boolean);const total={spent:0,plays:0,adds:0};camps.forEach(c=>{total.spent+=c.spent;total.plays+=c.plays;total.adds+=c.adds;});const cpa_play=total.plays?(total.spent/total.plays).toFixed(2):'—';const cpa_add=total.adds?(total.spent/total.adds).toFixed(2):'—';const period=new Date().toLocaleString('ru',{month:'long',year:'numeric'});document.getElementById('report-content').innerHTML=`<div class="report-header"><div class="report-logo">PIKALOV <em>MEDIA</em></div><div class="report-artist">${cl.name}</div><div class="report-period">${period} · Отчёт по продвижению</div></div><div class="totals-grid"><div class="total-card"><div class="t-label">Потрачено</div><div class="t-value">${total.spent.toLocaleString('ru')} ₽</div></div><div class="total-card"><div class="t-label">Прослушиваний</div><div class="t-value">${total.plays.toLocaleString('ru')}</div></div><div class="total-card accent"><div class="t-label">Добавлений в аудио</div><div class="t-value purple">${total.adds.toLocaleString('ru')}</div></div><div class="total-card green"><div class="t-label">Стоимость добавления</div><div class="t-value g">${cpa_add} ₽</div></div></div><div class="divider"></div><div class="section-label">По кампаниям</div>${camps.map(c=>`<div class="report-camp"><div class="report-camp-name">${c.name}</div><div class="metrics-row"><div class="metric"><div class="metric-label">Потрачено</div><div class="metric-value">${c.spent.toLocaleString('ru')} ₽</div></div><div class="metric"><div class="metric-label">Прослуш.</div><div class="metric-value">${c.plays.toLocaleString('ru')}</div></div><div class="metric"><div class="metric-label">Ст. прослуш.</div><div class="metric-value mp">${c.cpa_play?c.cpa_play.toFixed(2)+' ₽':'—'}</div></div><div class="metric"><div class="metric-label">Добавл.</div><div class="metric-value">${c.adds.toLocaleString('ru')}</div></div><div class="metric"><div class="metric-label">Ст. добавл.</div><div class="metric-value mg">${c.cpa_add?c.cpa_add.toFixed(2)+' ₽':'—'}</div></div></div></div>`).join('')}<div class="report-footer">Данные обновляются автоматически · <em>PIKALOV MEDIA</em></div>`;document.getElementById('client-select-state').style.display='none';document.getElementById('client-report-state').style.display='block';}
+function backToList(){document.getElementById('client-select-state').style.display='block';document.getElementById('client-report-state').style.display='none';}
+function showView(name){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById('view-'+name).classList.add('active');document.getElementById('tab-'+name).classList.add('active');if(name==='preview')renderPreviewList();}
+function checkClientLink(){const params=new URLSearchParams(window.location.search);const token=params.get('client');if(!token)return false;const cl=state.clients.find(c=>c.token===token);if(!cl)return false;document.getElementById('main-nav').style.display='none';document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById('view-preview').classList.add('active');document.getElementById('view-preview').style.paddingTop='32px';document.getElementById('client-select-state').style.display='none';document.getElementById('client-report-state').style.display='block';showClientReport(cl.id);return true;}
+loadState();renderAdminClients();renderCampListAdmin();checkClientLink();
+</script>
+</body>
+</html>
