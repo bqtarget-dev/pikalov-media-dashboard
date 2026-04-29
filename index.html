@@ -433,7 +433,16 @@ function checkClientLink() {
 loadState();
 renderAdminClients();
 renderCampListAdmin();
-checkClientLink();
+var isClientLink = checkClientLink();
+if (isClientLink && state.token && state.campaigns.length) {
+  loadStats().then(function() {
+    saveState();
+    var params = new URLSearchParams(window.location.search);
+    var token = params.get('client');
+    var cl = state.clients.find(function(c){ return c.token === token; });
+    if (cl) showClientReport(cl.id);
+  });
+}
 </script>
 </body>
 </html>
