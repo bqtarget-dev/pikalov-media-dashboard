@@ -229,7 +229,7 @@ async function loadStats() {
   try {
     var ids = state.campaigns.map(function(c){ return c.id; }).join(',');
     var today = new Date().toISOString().split('T')[0];
-    var data = await vkRequest('statistics/ad_plans/day', {date_from:'2025-02-22', date_to:today, id:ids, metrics:'base'});
+    var data = await vkRequest('statistics/ad_plans/day', {date_from:'2025-02-23', date_to:today, id:ids, metrics:'base'});
     if (!data.items) return;
     data.items.forEach(function(item) {
       var camp = state.campaigns.find(function(c){ return String(c.id) === String(item.id); });
