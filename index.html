@@ -169,10 +169,21 @@ input[type=text]:focus{border-color:var(--accent)}
 <script>
 var state = {clients:[], campaigns:[], token:'', accountId:'26407151'};
 
+async function saveToServer() {
+  try {
+    await fetch('/api/clients', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({clients: state.clients, campaigns: state.campaigns})
+    });
+  } catch(e) {}
+}
+
 function saveState() {
   localStorage.setItem('pm_clients', JSON.stringify(state.clients));
   localStorage.setItem('pm_campaigns', JSON.stringify(state.campaigns));
   if (state.token) localStorage.setItem('pm_token', state.token);
+  saveToServer();
 }
 
 function loadState() {
@@ -187,6 +198,19 @@ function loadState() {
       document.getElementById('vk-dot').classList.add('connected');
       document.getElementById('vk-status-text').textContent = 'Подключено';
     }
+  } catch(e) {}
+}
+
+async function syncFromServer() {
+  try {
+    var res = await fetch('/api/clients');
+    if (!res.ok) return;
+    var data = await res.json();
+    if (!data.clients) return;
+    state.clients = data.clients;
+    state.campaigns = data.campaigns;
+    renderAdminClients();
+    renderCampListAdmin();
   } catch(e) {}
 }
 
@@ -418,35 +442,43 @@ function showView(name) {
   if (name === 'preview') renderPreviewList();
 }
 
-function checkClientLink() {
+async function checkClientLink() {
   var params = new URLSearchParams(window.location.search);
   var token = params.get('client');
   if (!token) return false;
-  var cl = state.clients.find(function(c){ return c.token === token; });
-  if (!cl) return false;
+
   document.getElementById('main-nav').style.display = 'none';
   document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
   document.getElementById('view-preview').classList.add('active');
   document.getElementById('view-preview').style.paddingTop = '32px';
   document.getElementById('client-select-state').style.display = 'none';
   document.getElementById('client-report-state').style.display = 'block';
-  showClientReport(cl.id);
+  document.getElementById('report-content').innerHTML = '<div class="empty">Загрузка отчёта...</div>';
+
+  try {
+    var res = await fetch('/api/clients?token=' + encodeURIComponent(token));
+    if (!res.ok) throw new Error('not_found');
+    var data = await res.json();
+    state.clients = [data.client];
+    state.campaigns = data.campaigns;
+    showClientReport(data.client.id);
+  } catch(e) {
+    document.getElementById('report-content').innerHTML = '<div class="empty">Отчёт не найден. Попросите менеджера обновить ссылку.</div>';
+  }
   return true;
 }
 
-loadState();
-renderAdminClients();
-renderCampListAdmin();
-var isClientLink = checkClientLink();
-if (isClientLink && state.token && state.campaigns.length) {
-  loadStats().then(function() {
-    saveState();
-    var params = new URLSearchParams(window.location.search);
-    var token = params.get('client');
-    var cl = state.clients.find(function(c){ return c.token === token; });
-    if (cl) showClientReport(cl.id);
-  });
-}
+(async function() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('client')) {
+    await checkClientLink();
+  } else {
+    loadState();
+    renderAdminClients();
+    renderCampListAdmin();
+    syncFromServer();
+  }
+})();
 </script>
 </body>
 </html>
