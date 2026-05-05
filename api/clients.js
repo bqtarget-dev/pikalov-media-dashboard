@@ -1,24 +1,39 @@
-const KV_URL = process.env.KV_REST_API_URL;
-const KV_TOKEN = process.env.KV_REST_API_TOKEN;
-const KEY = 'pm_data';
+const JSONBIN = 'https://api.jsonbin.io/v3';
+const MASTER_KEY = process.env.JSONBIN_MASTER_KEY;
+const BIN_ID = process.env.JSONBIN_BIN_ID;
 
-async function kvGet() {
-  if (!KV_URL || !KV_TOKEN) return null;
-  const res = await fetch(`${KV_URL}/get/${KEY}`, {
-    headers: { Authorization: `Bearer ${KV_TOKEN}` }
+async function readBin() {
+  const res = await fetch(`${JSONBIN}/b/${BIN_ID}/latest`, {
+    headers: { 'X-Master-Key': MASTER_KEY }
   });
+  if (!res.ok) return { clients: [], campaigns: [] };
   const data = await res.json();
-  return data.result ? JSON.parse(data.result) : null;
+  return data.record || { clients: [], campaigns: [] };
 }
 
-async function kvSet(value) {
-  if (!KV_URL || !KV_TOKEN) return false;
-  const res = await fetch(`${KV_URL}/pipeline`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify([['SET', KEY, JSON.stringify(value)]])
+async function writeBin(value) {
+  const res = await fetch(`${JSONBIN}/b/${BIN_ID}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Master-Key': MASTER_KEY },
+    body: JSON.stringify(value)
   });
   return res.ok;
+}
+
+async function createBin() {
+  const res = await fetch(`${JSONBIN}/b`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Master-Key': MASTER_KEY,
+      'X-Bin-Name': 'pikalov-media',
+      'X-Bin-Private': 'true'
+    },
+    body: JSON.stringify({ clients: [], campaigns: [] })
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.metadata?.id || null;
 }
 
 export default async function handler(req, res) {
@@ -27,10 +42,28 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  if (!MASTER_KEY) {
+    return res.status(503).json({ error: 'JSONBIN_MASTER_KEY not set in Vercel environment variables' });
+  }
+
+  // Auto-create bin on first use if BIN_ID is not configured yet
+  if (!BIN_ID) {
+    if (req.method === 'POST') {
+      const newId = await createBin();
+      if (!newId) return res.status(500).json({ error: 'Failed to create JSONBin' });
+      return res.status(200).json({
+        ok: true,
+        setup: true,
+        bin_id: newId,
+        message: `Bin created! Add JSONBIN_BIN_ID=${newId} to Vercel environment variables and redeploy.`
+      });
+    }
+    return res.status(503).json({ error: 'JSONBIN_BIN_ID not set in Vercel environment variables' });
+  }
+
   if (req.method === 'GET') {
     const { token } = req.query;
-    const stored = await kvGet();
-    const data = stored || { clients: [], campaigns: [] };
+    const data = await readBin();
 
     if (token) {
       const client = data.clients.find(c => c.token === token);
@@ -49,7 +82,7 @@ export default async function handler(req, res) {
     if (!body || !Array.isArray(body.clients) || !Array.isArray(body.campaigns)) {
       return res.status(400).json({ error: 'invalid_body' });
     }
-    const ok = await kvSet({ clients: body.clients, campaigns: body.campaigns });
+    const ok = await writeBin({ clients: body.clients, campaigns: body.campaigns });
     return res.status(ok ? 200 : 500).json({ ok });
   }
 
