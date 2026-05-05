@@ -175,23 +175,33 @@ function saveBid(id) { if (id) localStorage.setItem('pm_bin_id', id); }
 async function saveToServer() {
   try {
     var bid = getBid();
+    console.log('[saveToServer] POST /api/clients, bid=' + (bid || 'none'));
     var res = await fetch('/api/clients', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({clients: state.clients, campaigns: state.campaigns, bid: bid})
     });
-    if (!res.ok) return;
     var data = await res.json();
+    console.log('[saveToServer] response', res.status, JSON.stringify(data));
+    if (!res.ok) return false;
     if (data.bin_id) saveBid(data.bin_id);
     // First call creates bin but doesn't write data — retry with the new bin_id
     if (data.created) {
-      await fetch('/api/clients', {
+      console.log('[saveToServer] bin created, retrying with bin_id=' + data.bin_id);
+      var res2 = await fetch('/api/clients', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({clients: state.clients, campaigns: state.campaigns, bid: data.bin_id})
       });
+      var data2 = await res2.json();
+      console.log('[saveToServer] retry response', res2.status, JSON.stringify(data2));
+      return res2.ok;
     }
-  } catch(e) {}
+    return true;
+  } catch(e) {
+    console.error('[saveToServer] error', e.message);
+    return false;
+  }
 }
 
 function saveState() {
@@ -314,7 +324,9 @@ async function syncCampaigns() {
     await loadStats();
     saveState();
     renderCampListAdmin();
-    document.getElementById('sync-status').textContent = 'Загружено ' + state.campaigns.length + ' кампаний';
+    document.getElementById('sync-status').textContent = 'Загружено ' + state.campaigns.length + ' кампаний, сохраняю на сервер...';
+    var serverOk = await saveToServer();
+    document.getElementById('sync-status').textContent = 'Загружено ' + state.campaigns.length + ' кампаний' + (serverOk ? ' · Сохранено на сервере ✓' : ' · Ошибка сохранения на сервере');
   } catch(e) { document.getElementById('sync-status').textContent = 'Ошибка: ' + e.message; }
 }
 
@@ -344,6 +356,9 @@ function createClient() {
   saveState();
   renderAdminClients();
   renderCampListAdmin();
+  saveToServer().then(function(ok) {
+    console.log('[createClient] server save:', ok ? 'OK' : 'FAILED');
+  });
 }
 
 function deleteClient(id) {
