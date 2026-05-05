@@ -3,37 +3,67 @@ const MASTER_KEY = process.env.JSONBIN_MASTER_KEY;
 const BIN_ID = process.env.JSONBIN_BIN_ID;
 
 async function readBin() {
-  const res = await fetch(`${JSONBIN}/b/${BIN_ID}/latest`, {
-    headers: { 'X-Master-Key': MASTER_KEY }
-  });
-  if (!res.ok) return { clients: [], campaigns: [] };
-  const data = await res.json();
-  return data.record || { clients: [], campaigns: [] };
+  try {
+    const res = await fetch(`${JSONBIN}/b/${BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': MASTER_KEY }
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      console.error('[readBin] JSONBin error', res.status, text);
+      return { clients: [], campaigns: [] };
+    }
+    const data = await res.json();
+    return data.record || { clients: [], campaigns: [] };
+  } catch (e) {
+    console.error('[readBin] fetch failed', e.message);
+    return { clients: [], campaigns: [] };
+  }
 }
 
 async function writeBin(value) {
-  const res = await fetch(`${JSONBIN}/b/${BIN_ID}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'X-Master-Key': MASTER_KEY },
-    body: JSON.stringify(value)
-  });
-  return res.ok;
+  let res, text;
+  try {
+    res = await fetch(`${JSONBIN}/b/${BIN_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': MASTER_KEY },
+      body: JSON.stringify(value)
+    });
+    text = await res.text();
+    if (!res.ok) {
+      console.error('[writeBin] JSONBin error', res.status, text);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error('[writeBin] fetch failed', e.message);
+    return false;
+  }
 }
 
 async function createBin() {
-  const res = await fetch(`${JSONBIN}/b`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Master-Key': MASTER_KEY,
-      'X-Bin-Name': 'pikalov-media',
-      'X-Bin-Private': 'true'
-    },
-    body: JSON.stringify({ clients: [], campaigns: [] })
-  });
-  if (!res.ok) return null;
-  const data = await res.json();
-  return data.metadata?.id || null;
+  let res, text;
+  try {
+    res = await fetch(`${JSONBIN}/b`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': MASTER_KEY,
+        'X-Bin-Name': 'pikalov-media',
+        'X-Bin-Private': 'true'
+      },
+      body: JSON.stringify({ clients: [], campaigns: [] })
+    });
+    text = await res.text();
+    if (!res.ok) {
+      console.error('[createBin] JSONBin error', res.status, text);
+      return null;
+    }
+    const data = JSON.parse(text);
+    return data.metadata?.id || null;
+  } catch (e) {
+    console.error('[createBin] fetch failed', e.message);
+    return null;
+  }
 }
 
 export default async function handler(req, res) {
@@ -80,9 +110,12 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     const body = req.body;
     if (!body || !Array.isArray(body.clients) || !Array.isArray(body.campaigns)) {
+      console.error('[POST /api/clients] invalid body', JSON.stringify(body)?.slice(0, 200));
       return res.status(400).json({ error: 'invalid_body' });
     }
+    console.log('[POST /api/clients] saving', body.clients.length, 'clients,', body.campaigns.length, 'campaigns');
     const ok = await writeBin({ clients: body.clients, campaigns: body.campaigns });
+    if (!ok) console.error('[POST /api/clients] writeBin returned false');
     return res.status(ok ? 200 : 500).json({ ok });
   }
 
