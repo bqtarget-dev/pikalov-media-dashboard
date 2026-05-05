@@ -1,10 +1,14 @@
 const JSONBIN = 'https://api.jsonbin.io/v3';
 const MASTER_KEY = process.env.JSONBIN_MASTER_KEY;
-const BIN_ID = process.env.JSONBIN_BIN_ID;
 
-async function readBin() {
+// bin_id can come from env (production) or from request (no-config mode)
+function getBinId(req) {
+  return process.env.JSONBIN_BIN_ID || req.query?.bid || req.body?.bid || null;
+}
+
+async function readBin(binId) {
   try {
-    const res = await fetch(`${JSONBIN}/b/${BIN_ID}/latest`, {
+    const res = await fetch(`${JSONBIN}/b/${binId}/latest`, {
       headers: { 'X-Master-Key': MASTER_KEY }
     });
     if (!res.ok) {
@@ -20,16 +24,15 @@ async function readBin() {
   }
 }
 
-async function writeBin(value) {
-  let res, text;
+async function writeBin(binId, value) {
   try {
-    res = await fetch(`${JSONBIN}/b/${BIN_ID}`, {
+    const res = await fetch(`${JSONBIN}/b/${binId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': MASTER_KEY },
       body: JSON.stringify(value)
     });
-    text = await res.text();
     if (!res.ok) {
+      const text = await res.text();
       console.error('[writeBin] JSONBin error', res.status, text);
       return false;
     }
@@ -41,9 +44,8 @@ async function writeBin(value) {
 }
 
 async function createBin() {
-  let res, text;
   try {
-    res = await fetch(`${JSONBIN}/b`, {
+    const res = await fetch(`${JSONBIN}/b`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -53,12 +55,12 @@ async function createBin() {
       },
       body: JSON.stringify({ clients: [], campaigns: [] })
     });
-    text = await res.text();
     if (!res.ok) {
+      const text = await res.text();
       console.error('[createBin] JSONBin error', res.status, text);
       return null;
     }
-    const data = JSON.parse(text);
+    const data = await res.json();
     return data.metadata?.id || null;
   } catch (e) {
     console.error('[createBin] fetch failed', e.message);
@@ -76,24 +78,14 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'JSONBIN_MASTER_KEY not set in Vercel environment variables' });
   }
 
-  // Auto-create bin on first use if BIN_ID is not configured yet
-  if (!BIN_ID) {
-    if (req.method === 'POST') {
-      const newId = await createBin();
-      if (!newId) return res.status(500).json({ error: 'Failed to create JSONBin' });
-      return res.status(200).json({
-        ok: true,
-        setup: true,
-        bin_id: newId,
-        message: `Bin created! Add JSONBIN_BIN_ID=${newId} to Vercel environment variables and redeploy.`
-      });
-    }
-    return res.status(503).json({ error: 'JSONBIN_BIN_ID not set in Vercel environment variables' });
-  }
-
   if (req.method === 'GET') {
+    const binId = getBinId(req);
+    if (!binId) {
+      return res.status(503).json({ error: 'bin_id missing — pass ?bid= or set JSONBIN_BIN_ID env var' });
+    }
+
     const { token } = req.query;
-    const data = await readBin();
+    const data = await readBin(binId);
 
     if (token) {
       const client = data.clients.find(c => c.token === token);
@@ -101,10 +93,10 @@ export default async function handler(req, res) {
       const campaigns = client.campaigns
         .map(id => data.campaigns.find(c => c.id === id))
         .filter(Boolean);
-      return res.status(200).json({ client, campaigns });
+      return res.status(200).json({ client, campaigns, bin_id: binId });
     }
 
-    return res.status(200).json(data);
+    return res.status(200).json({ ...data, bin_id: binId });
   }
 
   if (req.method === 'POST') {
@@ -113,10 +105,23 @@ export default async function handler(req, res) {
       console.error('[POST /api/clients] invalid body', JSON.stringify(body)?.slice(0, 200));
       return res.status(400).json({ error: 'invalid_body' });
     }
-    console.log('[POST /api/clients] saving', body.clients.length, 'clients,', body.campaigns.length, 'campaigns');
-    const ok = await writeBin({ clients: body.clients, campaigns: body.campaigns });
+
+    let binId = getBinId(req);
+
+    // Auto-create bin on first save if no bin_id anywhere
+    if (!binId) {
+      console.log('[POST /api/clients] no bin_id, creating new bin');
+      binId = await createBin();
+      if (!binId) return res.status(500).json({ error: 'Failed to create JSONBin' });
+      console.log('[POST /api/clients] created bin', binId);
+      // Return bin_id without writing data — frontend must retry with bin_id
+      return res.status(200).json({ ok: true, bin_id: binId, created: true });
+    }
+
+    console.log('[POST /api/clients] saving', body.clients.length, 'clients,', body.campaigns.length, 'campaigns to bin', binId);
+    const ok = await writeBin(binId, { clients: body.clients, campaigns: body.campaigns });
     if (!ok) console.error('[POST /api/clients] writeBin returned false');
-    return res.status(ok ? 200 : 500).json({ ok });
+    return res.status(ok ? 200 : 500).json({ ok, bin_id: binId });
   }
 
   return res.status(405).json({ error: 'method_not_allowed' });

@@ -169,13 +169,28 @@ input[type=text]:focus{border-color:var(--accent)}
 <script>
 var state = {clients:[], campaigns:[], token:'', accountId:'26407151'};
 
+function getBid() { return localStorage.getItem('pm_bin_id') || ''; }
+function saveBid(id) { if (id) localStorage.setItem('pm_bin_id', id); }
+
 async function saveToServer() {
   try {
-    await fetch('/api/clients', {
+    var bid = getBid();
+    var res = await fetch('/api/clients', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({clients: state.clients, campaigns: state.campaigns})
+      body: JSON.stringify({clients: state.clients, campaigns: state.campaigns, bid: bid})
     });
+    if (!res.ok) return;
+    var data = await res.json();
+    if (data.bin_id) saveBid(data.bin_id);
+    // First call creates bin but doesn't write data — retry with the new bin_id
+    if (data.created) {
+      await fetch('/api/clients', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({clients: state.clients, campaigns: state.campaigns, bid: data.bin_id})
+      });
+    }
   } catch(e) {}
 }
 
@@ -202,8 +217,10 @@ function loadState() {
 }
 
 async function syncFromServer() {
+  var bid = getBid();
+  if (!bid) return;
   try {
-    var res = await fetch('/api/clients');
+    var res = await fetch('/api/clients?bid=' + encodeURIComponent(bid));
     if (!res.ok) return;
     var data = await res.json();
     if (!data.clients) return;
@@ -337,7 +354,8 @@ function deleteClient(id) {
 }
 
 function copyLink(token, btnId) {
-  var url = window.location.origin + window.location.pathname + '?client=' + token;
+  var bid = getBid();
+  var url = window.location.origin + window.location.pathname + '?client=' + token + (bid ? '&bid=' + bid : '');
   navigator.clipboard.writeText(url).catch(function(){});
   var btn = document.getElementById(btnId);
   if (btn) {
@@ -456,9 +474,12 @@ async function checkClientLink() {
   document.getElementById('report-content').innerHTML = '<div class="empty">Загрузка отчёта...</div>';
 
   try {
-    var res = await fetch('/api/clients?token=' + encodeURIComponent(token));
+    var bid = params.get('bid') || getBid();
+    var url = '/api/clients?token=' + encodeURIComponent(token) + (bid ? '&bid=' + encodeURIComponent(bid) : '');
+    var res = await fetch(url);
     if (!res.ok) throw new Error('not_found');
     var data = await res.json();
+    if (data.bin_id) saveBid(data.bin_id);
     state.clients = [data.client];
     state.campaigns = data.campaigns;
     showClientReport(data.client.id);
