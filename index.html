@@ -179,7 +179,7 @@ async function saveToServer() {
     var usedIds = new Set();
     state.clients.forEach(function(cl) { cl.campaigns.forEach(function(id) { usedIds.add(id); }); });
     var slimCampaigns = state.campaigns
-      .filter(function(c) { return usedIds.has(c.id); })
+      .filter(function(c) { return usedIds.has(c.id) || c.spent > 0; })
       .map(function(c) { return {id: c.id, name: c.name, spent: c.spent, plays: c.plays, cpa_play: c.cpa_play}; });
     console.log('[saveToServer] clients:', state.clients.length, state.clients.map(function(cl){ return cl.name + ' [' + cl.campaigns.join(',') + ']'; }));
     console.log('[saveToServer] usedIds:', Array.from(usedIds));
@@ -297,7 +297,7 @@ async function loadStats() {
       var batch = state.campaigns.slice(i, i + batchSize);
       var ids = batch.map(function(c){ return c.id; }).join(',');
       console.log('[loadStats] batch', batchNum, '— запрос', batch.length, 'кампаний');
-      var data = await vkRequest('statistics/ad_plans/day', {date_from:'2025-02-23', date_to:today, id:ids, metrics:'base'});
+      var data = await vkRequest('statistics/ad_plans/day', {date_from:'2025-03-02', date_to:today, id:ids, metrics:'base'});
       if (!data.items) { console.log('[loadStats] batch', batchNum, '— нет items в ответе', JSON.stringify(data).slice(0, 200)); continue; }
       data.items.forEach(function(item) {
         var camp = state.campaigns.find(function(c){ return String(c.id) === String(item.id); });
