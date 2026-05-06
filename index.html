@@ -175,11 +175,18 @@ function saveBid(id) { if (id) localStorage.setItem('pm_bin_id', id); }
 async function saveToServer() {
   try {
     var bid = getBid();
-    console.log('[saveToServer] POST /api/clients, bid=' + (bid || 'none'));
+    // Only save campaigns linked to at least one client, with minimal fields
+    var usedIds = new Set();
+    state.clients.forEach(function(cl) { cl.campaigns.forEach(function(id) { usedIds.add(id); }); });
+    var slimCampaigns = state.campaigns
+      .filter(function(c) { return usedIds.has(c.id); })
+      .map(function(c) { return {id: c.id, name: c.name, spent: c.spent, plays: c.plays, cpa_play: c.cpa_play}; });
+    console.log('[saveToServer] POST /api/clients, bid=' + (bid || 'none') + ', campaigns: ' + slimCampaigns.length + '/' + state.campaigns.length + ' (used/total)');
+    var payload = {clients: state.clients, campaigns: slimCampaigns, bid: bid, vk_token: state.token || ''};
     var res = await fetch('/api/clients', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({clients: state.clients, campaigns: state.campaigns, bid: bid, vk_token: state.token || ''})
+      body: JSON.stringify(payload)
     });
     var data = await res.json();
     console.log('[saveToServer] response', res.status, JSON.stringify(data));
@@ -191,7 +198,7 @@ async function saveToServer() {
       var res2 = await fetch('/api/clients', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({clients: state.clients, campaigns: state.campaigns, bid: data.bin_id, vk_token: state.token || ''})
+        body: JSON.stringify(Object.assign({}, payload, {bid: data.bin_id}))
       });
       var data2 = await res2.json();
       console.log('[saveToServer] retry response', res2.status, JSON.stringify(data2));
