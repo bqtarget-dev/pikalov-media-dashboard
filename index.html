@@ -181,7 +181,10 @@ async function saveToServer() {
     var slimCampaigns = state.campaigns
       .filter(function(c) { return usedIds.has(c.id); })
       .map(function(c) { return {id: c.id, name: c.name, spent: c.spent, plays: c.plays, cpa_play: c.cpa_play}; });
-    console.log('[saveToServer] POST /api/clients, bid=' + (bid || 'none') + ', campaigns: ' + slimCampaigns.length + '/' + state.campaigns.length + ' (used/total)');
+    console.log('[saveToServer] clients:', state.clients.length, state.clients.map(function(cl){ return cl.name + ' [' + cl.campaigns.join(',') + ']'; }));
+    console.log('[saveToServer] usedIds:', Array.from(usedIds));
+    console.log('[saveToServer] state.campaigns IDs:', state.campaigns.map(function(c){ return c.id; }));
+    console.log('[saveToServer] slimCampaigns:', slimCampaigns.length, '/', state.campaigns.length, '(used/total), bid=' + (bid || 'none'));
     var payload = {clients: state.clients, campaigns: slimCampaigns, bid: bid, vk_token: state.token || ''};
     var res = await fetch('/api/clients', {
       method: 'POST',
