@@ -14,13 +14,13 @@ async function readBin(binId) {
     if (!res.ok) {
       const text = await res.text();
       console.error('[readBin] JSONBin error', res.status, text);
-      return { clients: [], campaigns: [] };
+      return { clients: [], campaigns: [], vk_token: '' };
     }
     const data = await res.json();
-    return data.record || { clients: [], campaigns: [] };
+    return data.record || { clients: [], campaigns: [], vk_token: '' };
   } catch (e) {
     console.error('[readBin] fetch failed', e.message);
-    return { clients: [], campaigns: [] };
+    return { clients: [], campaigns: [], vk_token: '' };
   }
 }
 
@@ -53,7 +53,7 @@ async function createBin() {
         'X-Bin-Name': 'pikalov-media',
         'X-Bin-Private': 'true'
       },
-      body: JSON.stringify({ clients: [], campaigns: [] })
+      body: JSON.stringify({ clients: [], campaigns: [], vk_token: '' })
     });
     if (!res.ok) {
       const text = await res.text();
@@ -66,6 +66,44 @@ async function createBin() {
     console.error('[createBin] fetch failed', e.message);
     return null;
   }
+}
+
+async function fetchVkStats(campaigns, vkToken) {
+  if (!vkToken || !campaigns.length) return campaigns;
+  const today = new Date().toISOString().split('T')[0];
+  const result = campaigns.map(c => ({ ...c }));
+  const batchSize = 50;
+  try {
+    for (let i = 0; i < result.length; i += batchSize) {
+      const batch = result.slice(i, i + batchSize);
+      const ids = batch.map(c => c.id).join(',');
+      const url = `https://ads.vk.com/api/v2/statistics/ad_plans/day.json?date_from=2025-02-23&date_to=${today}&id=${ids}&metrics=base`;
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${vkToken}` }
+      });
+      if (!res.ok) {
+        console.error('[fetchVkStats] VK API error', res.status, await res.text());
+        continue;
+      }
+      const data = await res.json();
+      if (!data.items) continue;
+      data.items.forEach(item => {
+        const idx = result.findIndex(c => String(c.id) === String(item.id));
+        if (idx === -1) return;
+        let spent = 0, plays = 0;
+        (item.rows || []).forEach(r => {
+          if (r.base) {
+            spent += parseFloat(r.base.spent || 0);
+            if (r.base.vk) plays += parseInt(r.base.vk.goals || 0);
+          }
+        });
+        result[idx] = { ...result[idx], spent, plays, cpa_play: plays ? spent / plays : 0 };
+      });
+    }
+  } catch (e) {
+    console.error('[fetchVkStats] error', e.message);
+  }
+  return result;
 }
 
 export default async function handler(req, res) {
@@ -90,9 +128,13 @@ export default async function handler(req, res) {
     if (token) {
       const client = data.clients.find(c => c.token === token);
       if (!client) return res.status(404).json({ error: 'not_found' });
-      const campaigns = client.campaigns
+      let campaigns = client.campaigns
         .map(id => data.campaigns.find(c => c.id === id))
         .filter(Boolean);
+      if (data.vk_token) {
+        console.log('[GET /api/clients] fetching fresh VK stats for client', client.name, '—', campaigns.length, 'campaigns');
+        campaigns = await fetchVkStats(campaigns, data.vk_token);
+      }
       return res.status(200).json({ client, campaigns, bin_id: binId });
     }
 
@@ -118,8 +160,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, bin_id: binId, created: true });
     }
 
-    console.log('[POST /api/clients] saving', body.clients.length, 'clients,', body.campaigns.length, 'campaigns to bin', binId);
-    const ok = await writeBin(binId, { clients: body.clients, campaigns: body.campaigns });
+    const vk_token = body.vk_token || '';
+    console.log('[POST /api/clients] saving', body.clients.length, 'clients,', body.campaigns.length, 'campaigns to bin', binId, vk_token ? '(with vk_token)' : '(no vk_token)');
+    const ok = await writeBin(binId, { clients: body.clients, campaigns: body.campaigns, vk_token });
     if (!ok) console.error('[POST /api/clients] writeBin returned false');
     return res.status(ok ? 200 : 500).json({ ok, bin_id: binId });
   }
