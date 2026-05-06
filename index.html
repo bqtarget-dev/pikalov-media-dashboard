@@ -432,10 +432,7 @@ function renderPreviewList() {
   }).join('');
 }
 
-function showClientReport(cid) {
-  var cl = state.clients.find(function(c){ return c.id === cid; });
-  if (!cl) return;
-  var camps = cl.campaigns.map(function(id){ return state.campaigns.find(function(c){ return c.id === id; }); }).filter(Boolean);
+function renderReport(cl, camps) {
   var total = {spent:0, plays:0};
   camps.forEach(function(c){ total.spent += c.spent; total.plays += c.plays; });
   var cpa_play = total.plays ? (total.spent/total.plays).toFixed(2) : '—';
@@ -461,6 +458,13 @@ function showClientReport(cid) {
   document.getElementById('report-content').innerHTML = html;
   document.getElementById('client-select-state').style.display = 'none';
   document.getElementById('client-report-state').style.display = 'block';
+}
+
+function showClientReport(cid) {
+  var cl = state.clients.find(function(c){ return c.id === cid; });
+  if (!cl) return;
+  var camps = cl.campaigns.map(function(id){ return state.campaigns.find(function(c){ return c.id === id; }); }).filter(Boolean);
+  renderReport(cl, camps);
 }
 
 function backToList() {
@@ -498,7 +502,7 @@ async function checkClientLink() {
     if (data.bin_id) saveBid(data.bin_id);
     state.clients = [data.client];
     state.campaigns = data.campaigns;
-    showClientReport(data.client.id);
+    renderReport(data.client, data.campaigns);
   } catch(e) {
     document.getElementById('report-content').innerHTML = '<div class="empty">Отчёт не найден. Попросите менеджера обновить ссылку.</div>';
   }
