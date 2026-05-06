@@ -281,11 +281,14 @@ async function loadStats() {
   try {
     var today = new Date().toISOString().split('T')[0];
     var batchSize = 50;
+    var batchNum = 0;
     for (var i = 0; i < state.campaigns.length; i += batchSize) {
+      batchNum++;
       var batch = state.campaigns.slice(i, i + batchSize);
       var ids = batch.map(function(c){ return c.id; }).join(',');
+      console.log('[loadStats] batch', batchNum, '— запрос', batch.length, 'кампаний');
       var data = await vkRequest('statistics/ad_plans/day', {date_from:'2025-02-23', date_to:today, id:ids, metrics:'base'});
-      if (!data.items) continue;
+      if (!data.items) { console.log('[loadStats] batch', batchNum, '— нет items в ответе', JSON.stringify(data).slice(0, 200)); continue; }
       data.items.forEach(function(item) {
         var camp = state.campaigns.find(function(c){ return String(c.id) === String(item.id); });
         if (!camp) return;
@@ -302,8 +305,12 @@ async function loadStats() {
         camp.plays = plays;
         camp.cpa_play = plays ? spent/plays : 0;
       });
+      var batchTotal = batch.reduce(function(s,c){ return s + c.spent; }, 0);
+      console.log('[loadStats] batch', batchNum, '— готово,', data.items.length, 'items, spent в батче:', batchTotal.toFixed(2));
     }
-  } catch(e) { console.log('stats error', e); }
+    var total = state.campaigns.reduce(function(s,c){ return s + c.spent; }, 0);
+    console.log('[loadStats] все батчи завершены, total spent:', total.toFixed(2), 'по', state.campaigns.length, 'кампаниям');
+  } catch(e) { console.log('[loadStats] error', e); }
 }
 
 async function syncCampaigns() {
@@ -323,7 +330,7 @@ async function syncCampaigns() {
       return {id: String(c.id), name: c.name, status: 'active', spent: 0, plays: 0, cpa_play: 0};
     });
     await loadStats();
-    saveState();
+    localStorage.setItem('pm_campaigns', JSON.stringify(state.campaigns));
     renderCampListAdmin();
     document.getElementById('sync-status').textContent = 'Загружено ' + state.campaigns.length + ' кампаний, сохраняю на сервер...';
     var serverOk = await saveToServer();
