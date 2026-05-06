@@ -128,13 +128,9 @@ export default async function handler(req, res) {
     if (token) {
       const client = data.clients.find(c => c.token === token);
       if (!client) return res.status(404).json({ error: 'not_found' });
-      let campaigns = client.campaigns
+      const campaigns = client.campaigns
         .map(id => data.campaigns.find(c => c.id === id))
         .filter(Boolean);
-      if (data.vk_token) {
-        console.log('[GET /api/clients] fetching fresh VK stats for client', client.name, '—', campaigns.length, 'campaigns');
-        campaigns = await fetchVkStats(campaigns, data.vk_token);
-      }
       return res.status(200).json({ client, campaigns, bin_id: binId });
     }
 
