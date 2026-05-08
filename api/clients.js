@@ -1,7 +1,6 @@
 const JSONBIN = 'https://api.jsonbin.io/v3';
 const MASTER_KEY = process.env.JSONBIN_MASTER_KEY;
 
-// bin_id can come from env (production) or from request (no-config mode)
 function getBinId(req) {
   return process.env.JSONBIN_BIN_ID || req.query?.bid || req.body?.bid || null;
 }
@@ -68,42 +67,57 @@ async function createBin() {
   }
 }
 
+// Merge two arrays by id — incoming wins on conflict
+function mergeById(existing, incoming) {
+  const map = new Map(existing.map(x => [String(x.id), x]));
+  incoming.forEach(x => map.set(String(x.id), x));
+  return Array.from(map.values());
+}
+
 async function fetchVkStats(campaigns, vkToken) {
   if (!vkToken || !campaigns.length) return campaigns;
   const today = new Date().toISOString().split('T')[0];
+  const yearAgo = new Date(); yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+  const dateFrom = yearAgo.toISOString().split('T')[0];
   const result = campaigns.map(c => ({ ...c }));
   const batchSize = 50;
-  try {
-    for (let i = 0; i < result.length; i += batchSize) {
-      const batch = result.slice(i, i + batchSize);
-      const ids = batch.map(c => c.id).join(',');
-      const url = `https://ads.vk.com/api/v2/statistics/ad_plans/day.json?date_from=2025-02-23&date_to=${today}&id=${ids}&metrics=base`;
-      const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${vkToken}` }
-      });
-      if (!res.ok) {
-        console.error('[fetchVkStats] VK API error', res.status, await res.text());
-        continue;
-      }
-      const data = await res.json();
-      if (!data.items) continue;
-      data.items.forEach(item => {
-        const idx = result.findIndex(c => String(c.id) === String(item.id));
-        if (idx === -1) return;
-        let spent = 0, plays = 0;
-        (item.rows || []).forEach(r => {
-          if (r.base) {
-            spent += parseFloat(r.base.spent || 0);
-            if (r.base.vk) plays += parseInt(r.base.vk.goals || 0);
-          }
-        });
-        result[idx] = { ...result[idx], spent, plays, cpa_play: plays ? spent / plays : 0 };
-      });
+  for (let i = 0; i < result.length; i += batchSize) {
+    const batch = result.slice(i, i + batchSize);
+    const ids = batch.map(c => c.id).join(',');
+    const url = `https://ads.vk.com/api/v2/statistics/ad_plans/day.json?date_from=${dateFrom}&date_to=${today}&id=${ids}&metrics=base`;
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${vkToken}` }
+    });
+    if (!res.ok) {
+      console.error('[fetchVkStats] VK API error', res.status);
+      continue;
     }
-  } catch (e) {
-    console.error('[fetchVkStats] error', e.message);
+    const data = await res.json();
+    if (!data.items) continue;
+    data.items.forEach(item => {
+      const idx = result.findIndex(c => String(c.id) === String(item.id));
+      if (idx === -1) return;
+      let spent = 0, plays = 0;
+      (item.rows || []).forEach(r => {
+        if (r.base) {
+          spent += parseFloat(r.base.spent || 0);
+          if (r.base.vk) plays += parseInt(r.base.vk.goals || 0);
+        }
+      });
+      result[idx] = { ...result[idx], spent, plays, cpa_play: plays ? spent / plays : 0 };
+    });
   }
   return result;
+}
+
+async function fetchVkStatsWithTimeout(campaigns, vkToken, timeoutMs = 8000) {
+  const timeout = new Promise(resolve => setTimeout(() => resolve(null), timeoutMs));
+  const fresh = await Promise.race([fetchVkStats(campaigns, vkToken), timeout]);
+  if (fresh === null) {
+    console.log('[fetchVkStats] timeout after', timeoutMs, 'ms — using cached data');
+    return campaigns;
+  }
+  return fresh;
 }
 
 export default async function handler(req, res) {
@@ -128,9 +142,13 @@ export default async function handler(req, res) {
     if (token) {
       const client = data.clients.find(c => c.token === token);
       if (!client) return res.status(404).json({ error: 'not_found' });
-      const campaigns = client.campaigns
-        .map(id => data.campaigns.find(c => c.id === id))
+      let campaigns = client.campaigns
+        .map(id => data.campaigns.find(c => String(c.id) === String(id)))
         .filter(Boolean);
+      if (data.vk_token) {
+        console.log('[GET] fetching fresh VK stats for', client.name, '—', campaigns.length, 'campaigns');
+        campaigns = await fetchVkStatsWithTimeout(campaigns, data.vk_token, 8000);
+      }
       return res.status(200).json({ client, campaigns, bin_id: binId });
     }
 
@@ -146,19 +164,22 @@ export default async function handler(req, res) {
 
     let binId = getBinId(req);
 
-    // Auto-create bin on first save if no bin_id anywhere
     if (!binId) {
       console.log('[POST /api/clients] no bin_id, creating new bin');
       binId = await createBin();
       if (!binId) return res.status(500).json({ error: 'Failed to create JSONBin' });
       console.log('[POST /api/clients] created bin', binId);
-      // Return bin_id without writing data — frontend must retry with bin_id
       return res.status(200).json({ ok: true, bin_id: binId, created: true });
     }
 
-    const vk_token = body.vk_token || '';
-    console.log('[POST /api/clients] saving', body.clients.length, 'clients,', body.campaigns.length, 'campaigns to bin', binId, vk_token ? '(with vk_token)' : '(no vk_token)');
-    const ok = await writeBin(binId, { clients: body.clients, campaigns: body.campaigns, vk_token });
+    const existing = await readBin(binId);
+    const clients = mergeById(existing.clients, body.clients);
+    const campaigns = mergeById(existing.campaigns, body.campaigns);
+    // Preserve existing token if incoming is empty
+    const vk_token = body.vk_token || existing.vk_token || '';
+
+    console.log('[POST /api/clients] merge: existing', existing.clients.length, 'clients +', existing.campaigns.length, 'campaigns → merged', clients.length, 'clients +', campaigns.length, 'campaigns, bin', binId);
+    const ok = await writeBin(binId, { clients, campaigns, vk_token });
     if (!ok) console.error('[POST /api/clients] writeBin returned false');
     return res.status(ok ? 200 : 500).json({ ok, bin_id: binId });
   }
