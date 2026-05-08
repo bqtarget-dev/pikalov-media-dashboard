@@ -229,11 +229,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
     <div class="mrow">
       <div class="field">
         <label>Потрачено из бюджета, ₽</label>
-        <input type="number" id="r-spent" placeholder="0" min="0" oninput="updateCommPreview()" />
+        <input type="number" id="r-spent" placeholder="0" min="0" />
       </div>
       <div class="field">
         <label>Пришло в кабинет, ₽</label>
-        <input type="number" id="r-received" placeholder="0" min="0" oninput="updateCommPreview()" />
+        <input type="number" id="r-received" placeholder="0" min="0" />
       </div>
     </div>
     <div class="comm-preview" id="comm-preview"></div>
@@ -514,6 +514,13 @@ function flash(id) {
 // Close on overlay click
 document.getElementById('modal-task').addEventListener('click', function(e){ if(e.target===this) closeTaskModal(); });
 document.getElementById('modal-rep').addEventListener('click', function(e){ if(e.target===this) closeRepModal(); });
+
+// Replenishment inputs — register via addEventListener (type=number oninput not reliable in all browsers)
+['r-spent', 'r-received'].forEach(function(id) {
+  var el = document.getElementById(id);
+  el.addEventListener('input', updateCommPreview);
+  el.addEventListener('change', updateCommPreview);
+});
 
 // INIT
 (function() {
