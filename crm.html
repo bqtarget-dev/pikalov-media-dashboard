@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIKALOV MEDIA — CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0a0c;--bg2:#111116;--bg3:#18181f;--bg4:#1f1f28;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--accent:#7f6ef5;--accent2:#a99ef8;--green:#3ecf8e;--amber:#f5a623;--red:#f55656;--text:rgba(255,255,255,0.92);--text2:rgba(255,255,255,0.45);--text3:rgba(255,255,255,0.22);}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;min-height:100vh}
+
+/* PIN */
+.pin-screen{min-height:100vh;display:flex;align-items:center;justify-content:center}
+.pin-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:20px;padding:40px 36px;width:320px;text-align:center}
+.pin-logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.12em;margin-bottom:4px}
+.pin-logo em{color:var(--accent);font-style:normal}
+.pin-sub{font-size:12px;color:var(--text3);margin-bottom:28px}
+.pin-input{width:100%;background:var(--bg4);border:0.5px solid var(--border2);border-radius:10px;padding:12px;color:#fff;font-family:'DM Sans',sans-serif;font-size:22px;letter-spacing:0.5em;text-align:center;outline:none;margin-bottom:12px;transition:border-color .15s}
+.pin-input:focus{border-color:var(--accent)}
+.pin-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:12px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer}
+.pin-error{font-size:12px;color:var(--red);margin-top:10px;min-height:18px}
+
+/* Nav */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:0.5px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:100}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.12em}
+.logo em{color:var(--accent);font-style:normal}
+.logo-tag{font-size:10px;color:var(--text3);letter-spacing:0.08em;margin-left:8px;font-family:'DM Sans',sans-serif;vertical-align:middle}
+.nav-right{display:flex;align-items:center;gap:10px}
+.role-badge{font-size:11px;padding:4px 12px;border-radius:20px;border:0.5px solid var(--border2);color:var(--text2)}
+.role-badge.zhenya{color:var(--accent2);border-color:rgba(127,110,245,0.3)}
+.role-badge.dana{color:var(--green);border-color:rgba(62,207,142,0.3)}
+.logout-btn{font-size:11px;color:var(--text3);background:transparent;border:0.5px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;transition:all .15s}
+.logout-btn:hover{color:var(--text);border-color:var(--border2)}
+
+/* Main */
+.main{max-width:880px;margin:0 auto;padding:24px}
+
+/* Summary */
+.summary-bar{display:grid;gap:10px;margin-bottom:24px}
+.summary-5{grid-template-columns:repeat(5,1fr)}
+.summary-2{grid-template-columns:repeat(2,1fr)}
+.s-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:14px 16px}
+.s-label{font-size:9px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:6px}
+.s-value{font-size:19px;font-weight:500}
+.s-purple{color:var(--accent2)} .s-green{color:var(--green)} .s-amber{color:var(--amber)} .s-red{color:var(--red)}
+
+/* Toolbar */
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.ftabs{display:flex;gap:4px}
+.ftab{padding:6px 14px;border-radius:8px;border:0.5px solid var(--border);background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .15s}
+.ftab.active{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+.add-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:opacity .15s}
+.add-btn:hover{opacity:.85}
+
+/* Task card */
+.task-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:12px;transition:border-color .2s}
+.task-card.done{opacity:.55}
+.task-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;gap:12px}
+.task-title{font-size:15px;font-weight:500}
+.task-meta{display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap}
+.platform{font-size:10px;padding:2px 10px;border-radius:20px;border:0.5px solid var(--border2);color:var(--text2);background:var(--bg4)}
+.task-date{font-size:10px;color:var(--text3)}
+.status-pill{font-size:10px;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.status-pill.active{background:rgba(62,207,142,0.1);color:var(--green);border:0.5px solid rgba(62,207,142,0.25)}
+.status-pill.done{background:rgba(255,255,255,0.03);color:var(--text3);border:0.5px solid var(--border)}
+
+/* Stats */
+.stats-grid{display:grid;gap:8px;margin-bottom:12px}
+.sg5{grid-template-columns:repeat(5,1fr)}
+.sg3{grid-template-columns:repeat(3,1fr)}
+.stat-cell{background:var(--bg4);border-radius:8px;padding:10px;text-align:center}
+.stat-lbl{font-size:9px;text-transform:uppercase;letter-spacing:0.04em;color:var(--text3);margin-bottom:4px}
+.stat-val{font-size:13px;font-weight:500}
+
+/* Comment */
+.task-comment{font-size:12px;color:var(--text2);padding:8px 12px;background:rgba(0,0,0,0.18);border-radius:7px;border-left:2px solid var(--border2);margin-bottom:12px}
+
+/* Reps */
+.reps-toggle{font-size:11px;color:var(--text2);cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin-bottom:8px;transition:color .15s}
+.reps-toggle:hover{color:var(--text)}
+.reps-body{display:none}
+.reps-body.open{display:block}
+.rep-row{display:flex;align-items:center;gap:6px;padding:7px 10px;background:var(--bg4);border-radius:7px;margin-bottom:4px;font-size:11px;flex-wrap:wrap}
+.rep-date{color:var(--text3);width:68px;flex-shrink:0}
+.rep-col{flex:1;min-width:70px;text-align:center}
+.rep-col b{display:block;font-size:9px;color:var(--text3);font-weight:400;text-transform:uppercase;letter-spacing:.03em;margin-bottom:1px}
+
+/* Actions */
+.task-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.act{font-size:11px;border-radius:6px;padding:5px 12px;cursor:pointer;border:0.5px solid;font-family:'DM Sans',sans-serif;transition:all .15s}
+.act.complete{color:var(--green);border-color:rgba(62,207,142,0.3);background:rgba(62,207,142,0.05)}
+.act.complete:hover{background:rgba(62,207,142,0.12)}
+.act.reopen{color:var(--amber);border-color:rgba(245,166,35,0.3);background:rgba(245,166,35,0.05)}
+.act.reopen:hover{background:rgba(245,166,35,0.12)}
+.act.rep-btn{color:var(--accent2);border-color:rgba(127,110,245,0.3);background:rgba(127,110,245,0.07)}
+.act.rep-btn:hover{background:rgba(127,110,245,0.15)}
+.act.del{color:var(--red);border-color:rgba(245,86,86,0.2);background:transparent}
+.act.del:hover{background:rgba(245,86,86,0.07)}
+
+/* Empty */
+.empty{text-align:center;padding:48px;color:var(--text3);font-size:13px}
+
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border:0.5px solid var(--border2);border-radius:16px;padding:28px;width:100%;max-width:460px;max-height:92vh;overflow-y:auto}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.06em;margin-bottom:20px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:10px;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em}
+.field input,.field select,.field textarea{width:100%;background:var(--bg4);border:0.5px solid var(--border2);border-radius:8px;padding:9px 12px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .15s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+.field select option{background:#1f1f28}
+.field textarea{resize:vertical;min-height:68px}
+.mrow{display:flex;gap:10px}
+.mrow .field{flex:1}
+.comm-preview{font-size:12px;color:var(--text2);padding:9px 12px;background:rgba(0,0,0,0.18);border-radius:7px;margin-bottom:14px;display:none}
+.comm-preview.show{display:block}
+.modal-actions{display:flex;gap:10px;margin-top:18px}
+.mbtn{flex:1;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer}
+.mcancel{flex:none;background:transparent;color:var(--text2);border:0.5px solid var(--border2);border-radius:8px;padding:10px 18px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .15s}
+.mcancel:hover{color:var(--text);border-color:var(--border)}
+</style>
+</head>
+<body>
+
+<!-- PIN Screen -->
+<div class="pin-screen" id="pin-screen">
+  <div class="pin-card">
+    <div class="pin-logo">PIKALOV <em>MEDIA</em></div>
+    <div class="pin-sub">CRM · Внутренняя система</div>
+    <input class="pin-input" type="password" id="pin-input" placeholder="····" maxlength="4"
+      oninput="document.getElementById('pin-error').textContent=''"
+      onkeydown="if(event.key==='Enter')checkPin()" />
+    <button class="pin-btn" onclick="checkPin()">Войти</button>
+    <div class="pin-error" id="pin-error"></div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app" style="display:none">
+  <div class="nav">
+    <div>
+      <span class="logo">PIKALOV <em>MEDIA</em></span>
+      <span class="logo-tag">CRM</span>
+    </div>
+    <div class="nav-right">
+      <span class="role-badge" id="role-badge"></span>
+      <button class="logout-btn" id="logout-btn" style="display:none" onclick="logout()">Выйти</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- Zhenya view -->
+    <div id="view-zhenya" style="display:none">
+      <div class="summary-bar summary-5" id="zhenya-summary"></div>
+      <div class="toolbar">
+        <div class="ftabs">
+          <button class="ftab active" id="ftab-active" onclick="setFilter('active')">В работе</button>
+          <button class="ftab" id="ftab-done" onclick="setFilter('done')">Завершённые</button>
+        </div>
+        <button class="add-btn" onclick="openTaskModal()">+ Новая задача</button>
+      </div>
+      <div id="zhenya-tasks"></div>
+    </div>
+
+    <!-- Dana view -->
+    <div id="view-dana" style="display:none">
+      <div class="summary-bar summary-2" id="dana-summary"></div>
+      <div class="toolbar">
+        <span style="font-size:13px;color:var(--text2)">Активные задачи</span>
+        <button class="add-btn" onclick="openRepModal(null)">+ Пополнение</button>
+      </div>
+      <div id="dana-tasks"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal: New task -->
+<div class="overlay" id="modal-task">
+  <div class="modal">
+    <div class="modal-title">Новая задача</div>
+    <div class="field">
+      <label>Проект / Артист</label>
+      <input type="text" id="t-name" placeholder="Например: Saluki — апрельский релиз" />
+    </div>
+    <div class="mrow">
+      <div class="field">
+        <label>Площадка</label>
+        <select id="t-platform" onchange="onPlatformChange()">
+          <option>ВК</option>
+          <option>YouTube</option>
+          <option>TikTok</option>
+          <option>Посевы</option>
+          <option>Рабочие сервисы</option>
+          <option value="__custom__">Другое...</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Сумма выдана, ₽</label>
+        <input type="number" id="t-issued" placeholder="0" min="0" />
+      </div>
+    </div>
+    <div class="field" id="t-custom-wrap" style="display:none">
+      <label>Своя площадка</label>
+      <input type="text" id="t-platform-custom" placeholder="Название" />
+    </div>
+    <div class="field">
+      <label>Комментарий</label>
+      <textarea id="t-comment" placeholder="Детали, ссылки..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="mcancel" onclick="closeTaskModal()">Отмена</button>
+      <button class="mbtn" onclick="createTask()">Создать</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Add replenishment -->
+<div class="overlay" id="modal-rep">
+  <div class="modal">
+    <div class="modal-title">Добавить пополнение</div>
+    <div class="field">
+      <label>Задача</label>
+      <select id="r-task"></select>
+    </div>
+    <div class="mrow">
+      <div class="field">
+        <label>Потрачено из бюджета, ₽</label>
+        <input type="number" id="r-spent" placeholder="0" min="0" oninput="updateCommPreview()" />
+      </div>
+      <div class="field">
+        <label>Пришло в кабинет, ₽</label>
+        <input type="number" id="r-received" placeholder="0" min="0" oninput="updateCommPreview()" />
+      </div>
+    </div>
+    <div class="comm-preview" id="comm-preview"></div>
+    <div class="field">
+      <label>Комментарий (необязательно)</label>
+      <input type="text" id="r-comment" placeholder="" />
+    </div>
+    <div class="modal-actions">
+      <button class="mcancel" onclick="closeRepModal()">Отмена</button>
+      <button class="mbtn" onclick="addRep()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var PIN = '1234';
+var state = { role: null, tasks: [], replenishments: [], filter: 'active' };
+
+function loadData() {
+  try {
+    var t = localStorage.getItem('pm_crm_tasks');
+    var r = localStorage.getItem('pm_crm_reps');
+    if (t) state.tasks = JSON.parse(t);
+    if (r) state.replenishments = JSON.parse(r);
+  } catch(e) {}
+}
+
+function saveData() {
+  localStorage.setItem('pm_crm_tasks', JSON.stringify(state.tasks));
+  localStorage.setItem('pm_crm_reps', JSON.stringify(state.replenishments));
+}
+
+function taskStats(task) {
+  var reps = state.replenishments.filter(function(r){ return r.taskId === task.id; });
+  var spent = reps.reduce(function(s,r){ return s+r.spent; }, 0);
+  var received = reps.reduce(function(s,r){ return s+r.received; }, 0);
+  return { issued: task.issued, spent: spent, received: received, commission: spent-received, remaining: task.issued-spent, reps: reps };
+}
+
+function fmt(n) { return Number(n||0).toLocaleString('ru') + ' ₽'; }
+function fmtDate(iso) { return new Date(iso).toLocaleDateString('ru', {day:'2-digit', month:'2-digit', year:'2-digit'}); }
+
+// AUTH
+function checkPin() {
+  var v = document.getElementById('pin-input').value;
+  if (v === PIN) { login('zhenya'); }
+  else { document.getElementById('pin-error').textContent = 'Неверный пин-код'; document.getElementById('pin-input').value = ''; }
+}
+
+function login(role) {
+  state.role = role;
+  document.getElementById('pin-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  var badge = document.getElementById('role-badge');
+  if (role === 'zhenya') {
+    badge.textContent = 'Женя'; badge.className = 'role-badge zhenya';
+    document.getElementById('logout-btn').style.display = '';
+    document.getElementById('view-zhenya').style.display = '';
+  } else {
+    badge.textContent = 'Даня'; badge.className = 'role-badge dana';
+    document.getElementById('view-dana').style.display = '';
+  }
+  render();
+}
+
+function logout() {
+  state.role = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('view-zhenya').style.display = 'none';
+  document.getElementById('view-dana').style.display = 'none';
+  document.getElementById('pin-screen').style.display = 'flex';
+  document.getElementById('pin-input').value = '';
+}
+
+function setFilter(f) {
+  state.filter = f;
+  document.getElementById('ftab-active').classList.toggle('active', f==='active');
+  document.getElementById('ftab-done').classList.toggle('active', f==='done');
+  renderZhenya();
+}
+
+// RENDER
+function render() {
+  if (state.role === 'zhenya') renderZhenya(); else renderDana();
+}
+
+function renderZhenya() {
+  var all = state.tasks.map(function(t){ return taskStats(t); });
+  var s = all.reduce(function(acc,st){ return { issued:acc.issued+st.issued, spent:acc.spent+st.spent, received:acc.received+st.received, commission:acc.commission+st.commission, remaining:acc.remaining+st.remaining }; }, {issued:0,spent:0,received:0,commission:0,remaining:0});
+  document.getElementById('zhenya-summary').innerHTML =
+    sc('Выдано всего', fmt(s.issued), '') +
+    sc('Потрачено', fmt(s.spent), 's-purple') +
+    sc('В кабинете', fmt(s.received), 's-green') +
+    sc('Комиссия', fmt(s.commission), 's-amber') +
+    sc('У Дани на руках', fmt(s.remaining), 's-red');
+
+  var tasks = state.tasks.filter(function(t){ return state.filter==='active' ? t.status==='active' : t.status==='done'; });
+  var el = document.getElementById('zhenya-tasks');
+  el.innerHTML = tasks.length ? tasks.map(function(t){ return taskCard(t,'zhenya'); }).join('') : '<div class="empty">Задач нет</div>';
+}
+
+function renderDana() {
+  var active = state.tasks.filter(function(t){ return t.status==='active'; });
+  var totalIssued = active.reduce(function(s,t){ return s+t.issued; }, 0);
+  var totalSpent = active.reduce(function(s,t){ return s+taskStats(t).spent; }, 0);
+  document.getElementById('dana-summary').innerHTML =
+    sc('Выдано (активные)', fmt(totalIssued), '') +
+    sc('У тебя на руках', fmt(totalIssued-totalSpent), 's-green');
+
+  var el = document.getElementById('dana-tasks');
+  el.innerHTML = active.length ? active.map(function(t){ return taskCard(t,'dana'); }).join('') : '<div class="empty">Активных задач нет</div>';
+}
+
+function sc(label, value, cls) {
+  return '<div class="s-card"><div class="s-label">'+label+'</div><div class="s-value '+cls+'">'+value+'</div></div>';
+}
+
+function taskCard(task, role) {
+  var st = taskStats(task);
+  var statusPill = '<span class="status-pill '+(task.status==='active'?'active':'done')+'">'+(task.status==='active'?'В работе':'Завершена')+'</span>';
+  var head = '<div class="task-head"><div><div class="task-title">'+task.name+'</div><div class="task-meta"><span class="platform">'+task.platform+'</span><span class="task-date">'+fmtDate(task.createdAt)+'</span></div></div>'+statusPill+'</div>';
+
+  var stats = '';
+  if (role === 'zhenya') {
+    stats = '<div class="stats-grid sg5">' +
+      scell('Выдано', fmt(st.issued), '') +
+      scell('Потрачено', fmt(st.spent), 'color:var(--accent2)') +
+      scell('В кабинете', fmt(st.received), 'color:var(--green)') +
+      scell('Комиссия', fmt(st.commission), 'color:var(--amber)') +
+      scell('Остаток', fmt(st.remaining), 'color:var(--red)') +
+      '</div>';
+  } else {
+    stats = '<div class="stats-grid sg3">' +
+      scell('Выдано', fmt(st.issued), '') +
+      scell('Потрачено', fmt(st.spent), 'color:var(--accent2)') +
+      scell('Остаток', fmt(st.remaining), 'color:var(--green)') +
+      '</div>';
+  }
+
+  var comment = task.comment ? '<div class="task-comment">'+task.comment+'</div>' : '';
+
+  var reps = '';
+  if (st.reps.length) {
+    var rows = st.reps.map(function(r) {
+      var comm = r.spent - r.received;
+      return '<div class="rep-row">' +
+        '<span class="rep-date">'+fmtDate(r.date)+'</span>' +
+        '<div class="rep-col"><b>Потрачено</b>'+fmt(r.spent)+'</div>' +
+        '<div class="rep-col"><b>В кабинет</b>'+fmt(r.received)+'</div>' +
+        (role==='zhenya'?'<div class="rep-col"><b>Комиссия</b><span style="color:var(--amber)">'+fmt(comm)+'</span></div>':'') +
+        (r.comment?'<div class="rep-col" style="flex:2;text-align:left"><b>Коммент.</b>'+r.comment+'</div>':'') +
+        '</div>';
+    }).join('');
+    reps = '<div class="reps-toggle" onclick="toggleReps(\''+task.id+'\')">' +
+      '<span id="arr-'+task.id+'">▸</span> Пополнения ('+st.reps.length+')</div>' +
+      '<div class="reps-body" id="rb-'+task.id+'">'+rows+'</div>';
+  }
+
+  var actions = '<div class="task-actions">';
+  if (role === 'zhenya') {
+    if (task.status === 'active')
+      actions += '<button class="act complete" onclick="setStatus(\''+task.id+'\',\'done\')">✓ Завершить</button>';
+    else
+      actions += '<button class="act reopen" onclick="setStatus(\''+task.id+'\',\'active\')">↺ Возобновить</button>';
+    actions += '<button class="act rep-btn" onclick="openRepModal(\''+task.id+'\')">+ Пополнение</button>';
+    actions += '<button class="act del" onclick="deleteTask(\''+task.id+'\')">Удалить</button>';
+  } else {
+    actions += '<button class="act rep-btn" onclick="openRepModal(\''+task.id+'\')">+ Пополнение</button>';
+  }
+  actions += '</div>';
+
+  return '<div class="task-card'+(task.status==='done'?' done':'')+'">'+head+stats+comment+reps+actions+'</div>';
+}
+
+function scell(label, value, style) {
+  return '<div class="stat-cell"><div class="stat-lbl">'+label+'</div><div class="stat-val" style="'+style+'">'+value+'</div></div>';
+}
+
+function toggleReps(id) {
+  var rb = document.getElementById('rb-'+id);
+  var arr = document.getElementById('arr-'+id);
+  var open = rb.classList.toggle('open');
+  arr.textContent = open ? '▾' : '▸';
+}
+
+// TASK ACTIONS
+function setStatus(id, status) {
+  var t = state.tasks.find(function(t){ return t.id===id; });
+  if (t) { t.status = status; saveData(); render(); }
+}
+
+function deleteTask(id) {
+  if (!confirm('Удалить задачу и все её пополнения?')) return;
+  state.tasks = state.tasks.filter(function(t){ return t.id!==id; });
+  state.replenishments = state.replenishments.filter(function(r){ return r.taskId!==id; });
+  saveData(); render();
+}
+
+// TASK MODAL
+function onPlatformChange() {
+  var v = document.getElementById('t-platform').value;
+  document.getElementById('t-custom-wrap').style.display = v==='__custom__' ? '' : 'none';
+}
+
+function openTaskModal() {
+  document.getElementById('t-name').value = '';
+  document.getElementById('t-platform').value = 'ВК';
+  document.getElementById('t-issued').value = '';
+  document.getElementById('t-comment').value = '';
+  document.getElementById('t-custom-wrap').style.display = 'none';
+  document.getElementById('t-platform-custom').value = '';
+  document.getElementById('modal-task').classList.add('open');
+  setTimeout(function(){ document.getElementById('t-name').focus(); }, 60);
+}
+
+function closeTaskModal() { document.getElementById('modal-task').classList.remove('open'); }
+
+function createTask() {
+  var name = document.getElementById('t-name').value.trim();
+  var pSel = document.getElementById('t-platform').value;
+  var platform = pSel === '__custom__' ? document.getElementById('t-platform-custom').value.trim() : pSel;
+  var issued = parseFloat(document.getElementById('t-issued').value) || 0;
+  var comment = document.getElementById('t-comment').value.trim();
+  if (!name) { flash('t-name'); return; }
+  if (!platform) { flash('t-platform-custom'); return; }
+  state.tasks.unshift({ id:'task_'+Date.now(), name:name, platform:platform, issued:issued, comment:comment, createdAt:new Date().toISOString(), status:'active' });
+  saveData(); closeTaskModal(); render();
+}
+
+// REP MODAL
+function openRepModal(taskId) {
+  var active = state.tasks.filter(function(t){ return t.status==='active'; });
+  var sel = document.getElementById('r-task');
+  sel.innerHTML = active.map(function(t){ return '<option value="'+t.id+'">'+t.name+' · '+t.platform+'</option>'; }).join('');
+  if (!active.length) { alert('Нет активных задач'); return; }
+  if (taskId) sel.value = taskId;
+  document.getElementById('r-spent').value = '';
+  document.getElementById('r-received').value = '';
+  document.getElementById('r-comment').value = '';
+  document.getElementById('comm-preview').className = 'comm-preview';
+  document.getElementById('modal-rep').classList.add('open');
+  setTimeout(function(){ document.getElementById('r-spent').focus(); }, 60);
+}
+
+function closeRepModal() { document.getElementById('modal-rep').classList.remove('open'); }
+
+function updateCommPreview() {
+  var spent = parseFloat(document.getElementById('r-spent').value) || 0;
+  var received = parseFloat(document.getElementById('r-received').value) || 0;
+  var el = document.getElementById('comm-preview');
+  if (spent > 0 || received > 0) {
+    var comm = spent - received;
+    var pct = spent > 0 ? ((comm/spent)*100).toFixed(1) : '0';
+    el.innerHTML = 'Комиссия: <strong style="color:var(--amber)">'+fmt(comm)+'</strong> &nbsp;·&nbsp; '+pct+'% от потраченного';
+    el.className = 'comm-preview show';
+  } else {
+    el.className = 'comm-preview';
+  }
+}
+
+function addRep() {
+  var taskId = document.getElementById('r-task').value;
+  var spent = parseFloat(document.getElementById('r-spent').value) || 0;
+  var received = parseFloat(document.getElementById('r-received').value) || 0;
+  var comment = document.getElementById('r-comment').value.trim();
+  if (!taskId) return;
+  if (spent <= 0) { flash('r-spent'); return; }
+  state.replenishments.push({ id:'rep_'+Date.now(), taskId:taskId, spent:spent, received:received, commission:spent-received, date:new Date().toISOString(), comment:comment });
+  saveData(); closeRepModal(); render();
+}
+
+function flash(id) {
+  var el = document.getElementById(id);
+  el.style.borderColor = 'var(--red)';
+  setTimeout(function(){ el.style.borderColor = ''; }, 1000);
+}
+
+// Close on overlay click
+document.getElementById('modal-task').addEventListener('click', function(e){ if(e.target===this) closeTaskModal(); });
+document.getElementById('modal-rep').addEventListener('click', function(e){ if(e.target===this) closeRepModal(); });
+
+// INIT
+(function() {
+  loadData();
+  if (new URLSearchParams(window.location.search).get('role') === 'dana') {
+    document.getElementById('pin-screen').style.display = 'none';
+    login('dana');
+  }
+})();
+</script>
+</body>
+</html>
